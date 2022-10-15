@@ -29,9 +29,6 @@
 
 #include <stdlib.h>    // size_t
 
-//#define DEBUG_DGUSLCD
-//#define DEBUG_DGUSLCD_COMM
-
 #if HAS_BED_PROBE
   #include "../../../module/probe.h"
 #endif
@@ -39,6 +36,7 @@
 
 enum DGUSLCD_Screens : uint8_t;
 
+//#define DEBUG_DGUSLCD
 #define DEBUG_OUT ENABLED(DEBUG_DGUSLCD)
 #include "../../../core/debug_out.h"
 
@@ -48,8 +46,6 @@ typedef enum : uint8_t {
   DGUS_HEADER2_SEEN,   //< DGUS_HEADER2 received
   DGUS_WAIT_TELEGRAM,  //< LEN received, Waiting for to receive all bytes.
 } rx_datagram_state_t;
-
-constexpr uint16_t swap16(const uint16_t value) { return (value & 0xFFU) << 8U | (value >> 8U); }
 
 // Low-Level access to the display.
 class DGUSDisplay {
@@ -67,6 +63,9 @@ public:
   static void WriteVariable(uint16_t adr, uint8_t value);
   static void WriteVariable(uint16_t adr, int8_t value);
   static void WriteVariable(uint16_t adr, long value);
+  static void MKS_WriteVariable(uint16_t adr, uint8_t value);
+
+  static void write_str_to_disp(uint16_t adr, const void *values, uint8_t valueslen, bool isstr);
 
   // Utility functions for bridging ui_api and dbus
   template<typename T, float(*Getter)(const T), T selector, typename WireType=uint16_t>
@@ -87,6 +86,7 @@ public:
   // (And trigger update of containing VPs)
   // (to implement a pop up message, which may not be nested)
   static void RequestScreen(DGUSLCD_Screens screen);
+  static void SetBeeper_time(uint8_t time);
 
   // Periodic tasks, eg. Rx-Queue handling.
   static void loop();
@@ -104,6 +104,7 @@ private:
   static void WritePGM(const char str[], uint8_t len);
   static void ProcessRx();
 
+  static uint16_t swap16(const uint16_t value) { return (value & 0xFFU) << 8U | (value >> 8U); }
   static rx_datagram_state_t rx_datagram_state;
   static uint8_t rx_datagram_len;
   static bool Initialized, no_reentrance;

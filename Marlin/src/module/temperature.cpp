@@ -37,6 +37,7 @@
 #include "planner.h"
 #include "printcounter.h"
 
+#include "../lcd/extui/dgus/mks/DGUSScreenHandler.h"
 #if EITHER(HAS_COOLER, LASER_COOLANT_FLOW_METER)
   #include "../feature/cooler.h"
   #include "../feature/spindle_laser.h"
@@ -341,7 +342,7 @@ PGMSTR(str_t_heating_failed, STR_T_HEATING_FAILED);
 
 // HAS_FAN does not include CONTROLLER_FAN
 #if HAS_FAN
-
+  uint8_t Temperature::fan_speed_percent;
   uint8_t Temperature::fan_speed[FAN_COUNT]; // = { 0 }
 
   #if ENABLED(EXTRA_FAN_SPEED)
@@ -762,11 +763,15 @@ volatile bool Temperature::raw_temps_ready = false;
                 temp_change_ms = ms + SEC_TO_MS(watch_temp_period);   // - move the expiration timer up
                 if (current_temp > watch_temp_target) heated = true;  // - Flag if target temperature reached
               }
-              else if (ELAPSED(ms, temp_change_ms))                   // Watch timer expired
+              else if (ELAPSED(ms, temp_change_ms)) {                   // Watch timer expired
                 _temp_error(heater_id, FPSTR(str_t_heating_failed), GET_TEXT_F(MSG_HEATING_FAILED_LCD));
+                ScreenHandler.GotoScreen(DGUSLCD_SCREEN_MAIN);
+		          }
             }
-            else if (current_temp < target - (MAX_OVERSHOOT_PID_AUTOTUNE)) // Heated, then temperature fell too far?
+            else if (current_temp < target - (MAX_OVERSHOOT_PID_AUTOTUNE)) { // Heated, then temperature fell too far?
               _temp_error(heater_id, FPSTR(str_t_thermal_runaway), GET_TEXT_F(MSG_THERMAL_RUNAWAY));
+              ScreenHandler.GotoScreen(DGUSLCD_SCREEN_MAIN);
+            }
           }
         #endif
       } // every 2 seconds
@@ -1524,7 +1529,11 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
   void Temperature::manage_hotends(const millis_t &ms) {
     HOTEND_LOOP() {
       #if ENABLED(THERMAL_PROTECTION_HOTENDS)
-        if (degHotend(e) > temp_range[e].maxtemp) max_temp_error((heater_id_t)e);
+        if (degHotend(e) > temp_range[e].maxtemp)
+        {
+          max_temp_error((heater_id_t)e);
+          ScreenHandler.GotoScreen(MKSLCD_Screen_ERR2_POPUP);
+        }
       #endif
 
       TERN_(HEATER_IDLE_HANDLER, heater_idle[e].update(ms));
@@ -1544,6 +1553,7 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
           else {
             TERN_(HAS_DWIN_E3V2_BASIC, DWIN_Popup_Temperature(0));
             _temp_error((heater_id_t)e, FPSTR(str_t_heating_failed), GET_TEXT_F(MSG_HEATING_FAILED_LCD));
+            ScreenHandler.GotoScreen(MKSLCD_Screen_ERR5_POPUP);
           }
         }
       #endif
@@ -1558,7 +1568,11 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
   void Temperature::manage_heated_bed(const millis_t &ms) {
 
     #if ENABLED(THERMAL_PROTECTION_BED)
-      if (degBed() > BED_MAXTEMP) max_temp_error(H_BED);
+      if (degBed() > BED_MAXTEMP)
+      {
+        max_temp_error(H_BED);
+        ScreenHandler.GotoScreen(MKSLCD_Screen_ERR1_POPUP);
+      }
     #endif
 
     #if WATCH_BED
@@ -1569,6 +1583,7 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
         else {
           TERN_(HAS_DWIN_E3V2_BASIC, DWIN_Popup_Temperature(0));
           _temp_error(H_BED, FPSTR(str_t_heating_failed), GET_TEXT_F(MSG_HEATING_FAILED_LCD));
+          ScreenHandler.GotoScreen(MKSLCD_Screen_ERR6_POPUP);
         }
       }
     #endif // WATCH_BED
@@ -2358,14 +2373,18 @@ void Temperature::updateTemperaturesFromRawValues() {
       const raw_adc_t r = temp_hotend[e].getraw();
       const bool neg = temp_dir[e] < 0, pos = temp_dir[e] > 0;
       if ((neg && r < temp_range[e].raw_max) || (pos && r > temp_range[e].raw_max))
+      {
         max_temp_error((heater_id_t)e);
+        ScreenHandler.GotoScreen(MKSLCD_Screen_ERR2_POPUP);
+      }
 
       const bool heater_on = temp_hotend[e].target > 0;
       if (heater_on && ((neg && r > temp_range[e].raw_min) || (pos && r < temp_range[e].raw_min))) {
         #if MAX_CONSECUTIVE_LOW_TEMPERATURE_ERROR_ALLOWED > 1
           if (++consecutive_low_temperature_error[e] >= MAX_CONSECUTIVE_LOW_TEMPERATURE_ERROR_ALLOWED)
         #endif
-            min_temp_error((heater_id_t)e);
+              min_temp_error((heater_id_t)e);
+              ScreenHandler.GotoScreen(MKSLCD_Screen_ERR4_POPUP);
       }
       #if MAX_CONSECUTIVE_LOW_TEMPERATURE_ERROR_ALLOWED > 1
         else
@@ -2377,8 +2396,16 @@ void Temperature::updateTemperaturesFromRawValues() {
 
   #define TP_CMP(S,A,B) (TEMPDIR(S) < 0 ? ((A)<(B)) : ((A)>(B)))
   #if ENABLED(THERMAL_PROTECTION_BED)
-    if (TP_CMP(BED, temp_bed.getraw(), maxtemp_raw_BED)) max_temp_error(H_BED);
-    if (temp_bed.target > 0 && TP_CMP(BED, mintemp_raw_BED, temp_bed.getraw())) min_temp_error(H_BED);
+    if (TP_CMP(BED, temp_bed.getraw(), maxtemp_raw_BED))
+    {
+      max_temp_error(H_BED);
+      ScreenHandler.GotoScreen(MKSLCD_Screen_ERR1_POPUP);
+    }
+    if (temp_bed.target > 0 && TP_CMP(BED, mintemp_raw_BED, temp_bed.getraw()))
+    {
+      min_temp_error(H_BED);
+      ScreenHandler.GotoScreen(MKSLCD_Screen_ERR3_POPUP);
+    }
   #endif
 
   #if BOTH(HAS_HEATED_CHAMBER, THERMAL_PROTECTION_CHAMBER)
@@ -2863,11 +2890,12 @@ void Temperature::init() {
       case TRRunaway:
         TERN_(HAS_DWIN_E3V2_BASIC, DWIN_Popup_Temperature(0));
         _temp_error(heater_id, FPSTR(str_t_thermal_runaway), GET_TEXT_F(MSG_THERMAL_RUNAWAY));
-
+        ScreenHandler.GotoScreen(MKSLCD_Screen_ERR7_POPUP);
       #if ENABLED(THERMAL_PROTECTION_VARIANCE_MONITOR)
         case TRMalfunction:
           TERN_(HAS_DWIN_E3V2_BASIC, DWIN_Popup_Temperature(0));
           _temp_error(heater_id, FPSTR(str_t_temp_malfunction), GET_TEXT_F(MSG_TEMP_MALFUNCTION));
+          ScreenHandler.GotoScreen(MKSLCD_Screen_ERR7_POPUP);
       #endif
     }
   }

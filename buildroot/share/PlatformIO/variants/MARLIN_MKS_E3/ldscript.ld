@@ -21,7 +21,7 @@
 *****************************************************************************
 ** @attention
 **
-** Copyright (c) 2014 Ac6
+** <h2><center>&copy; COPYRIGHT(c) 2014 Ac6</center></h2>
 **
 ** Redistribution and use in source and binary forms, with or without modification,
 ** are permitted provided that the following conditions are met:
@@ -61,8 +61,8 @@ _Min_Stack_Size = 0x400;; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 256K
-RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 64K
+FLASH (rx)      : ORIGIN = 0x8000000 + LD_FLASH_OFFSET, LENGTH = LD_MAX_SIZE - LD_FLASH_OFFSET
+RAM (xrw)      : ORIGIN = 0x20000000,   LENGTH = LD_MAX_DATA_SIZE
 }
 
 /* Define output sections */

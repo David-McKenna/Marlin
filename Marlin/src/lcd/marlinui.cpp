@@ -1633,7 +1633,9 @@ void MarlinUI::init() {
     IF_DISABLED(SDSUPPORT, print_job_timer.stop());
     TERN_(HOST_PROMPT_SUPPORT, hostui.prompt_open(PROMPT_INFO, F("UI Aborted"), FPSTR(DISMISS_STR)));
     LCD_MESSAGE(MSG_PRINT_ABORTED);
-    TERN_(HAS_MARLINUI_MENU, return_to_status());
+    TERN_(HAS_LCD_MENU, return_to_status());
+    //2---------注释无用行gcode.process_subcommands_now(F("G91\n G1 E0-5 F1300\n G90"));
+
   }
 
   #if BOTH(HAS_MARLINUI_MENU, PSU_CONTROL)
@@ -1670,6 +1672,7 @@ void MarlinUI::init() {
     #elif defined(ACTION_ON_PAUSE)
       hostui.pause();
     #endif
+    //2---------注释无用行gcode.process_subcommands_now(F("G91\n G1 E0-5 F1300\n G90"));
   }
 
   void MarlinUI::resume_print() {
