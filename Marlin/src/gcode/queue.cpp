@@ -36,6 +36,8 @@ GCodeQueue queue;
 #include "../module/temperature.h"
 #include "../MarlinCore.h"
 #include "../core/bug_on.h"
+#include "../lcd/extui/dgus/mks/DGUSScreenHandler.h"
+
 
 #if ENABLED(PRINTER_EVENT_LEDS)
   #include "../feature/leds/printer_event_leds.h"
@@ -558,9 +560,18 @@ void GCodeQueue::get_serial_commands() {
 
     int sd_count = 0;
     while (!ring_buffer.full() && !card.eof()) {
+      HAL_watchdog_refresh();
       const int16_t n = card.get();
+
       const bool card_eof = card.eof();
-      if (n < 0 && !card_eof) { SERIAL_ERROR_MSG(STR_SD_ERR_READ); continue; }
+      if (n < 0 && !card_eof) { 
+        SERIAL_ERROR_MSG(STR_SD_ERR_READ); 
+
+        // ������Ļ��ʾerr;
+        dgus_sd_read_err_disp(1);
+
+        continue; 
+      }
 
       CommandLine &command = ring_buffer.commands[ring_buffer.index_w];
       const char sd_char = (char)n;

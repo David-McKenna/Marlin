@@ -415,9 +415,15 @@ bool Probe::set_deployed(const bool deploy) {
   #else
     constexpr bool z_raise_wanted = true;
   #endif
+  
+  //不需要抬升了。
 
-  if (z_raise_wanted)
-    do_z_raise(_MAX(Z_CLEARANCE_BETWEEN_PROBES, Z_CLEARANCE_DEPLOY_PROBE));
+  #define Z_LIFT_0 0 
+  if (z_raise_wanted) {
+   do_z_raise(Z_LIFT_0);
+   //do_z_raise(_MAX(Z_CLEARANCE_BETWEEN_PROBES, Z_CLEARANCE_DEPLOY_PROBE));
+  }
+
 
   #if EITHER(Z_PROBE_SLED, Z_PROBE_ALLEN_KEY)
     if (homing_needed_error(TERN_(Z_PROBE_SLED, _BV(X_AXIS)))) {
@@ -603,8 +609,8 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/) {
     if (TERN0(PROBE_TARE, tare())) return true;
 
     // Do a first probe at the fast speed
-    const bool probe_fail = probe_down_to_z(z_probe_low_point, fr_mm_s),            // No probe trigger?
-               early_fail = (scheck && current_position.z > -offset.z + clearance); // Probe triggered too high?
+    const bool probe_fail = probe_down_to_z(z_probe_low_point, fr_mm_s)/*,            // No probe trigger?//1---------如果调平误触发，调平失败会导致喷嘴与平台摩擦
+               early_fail = (scheck && current_position.z > -offset.z + clearance)*/; // Probe triggered too high?
     #if ENABLED(DEBUG_LEVELING_FEATURE)
       if (DEBUGGING(LEVELING) && (probe_fail || early_fail)) {
         DEBUG_ECHOPGM_P(plbl);
@@ -616,7 +622,7 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/) {
     #else
       UNUSED(plbl);
     #endif
-    return probe_fail || early_fail;
+    return probe_fail/* || early_fail*/;  //1----------如果调平误触发，调平失败会导致喷嘴与平台摩擦
   };
 
   // Stop the probe before it goes too low to prevent damage.
@@ -635,10 +641,10 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/) {
 
     const float first_probe_z = current_position.z;
 
-    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("1st Probe Z:", first_probe_z);
+    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("1st Probe Z:", first_probe_z);//1-----------输出第一次探针的Z值
 
     // Raise to give the probe clearance
-    do_blocking_move_to_z(current_position.z + Z_CLEARANCE_MULTI_PROBE, z_probe_fast_mm_s);
+    do_blocking_move_to_z(current_position.z + 0.5 + Z_CLEARANCE_MULTI_PROBE, z_probe_fast_mm_s*4);//2-----------//1--------第一次抬升速度。移动到探针的Z值+探针的清洁距离 //1-------调节避免导致探测失败
 
   #elif Z_PROBE_FEEDRATE_FAST != Z_PROBE_FEEDRATE_SLOW
 
@@ -727,12 +733,13 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/) {
 
   #elif TOTAL_PROBING == 2
 
-    const float z2 = current_position.z;
+    //const float z2 = current_position.z;//2---------是否可以注释？
 
-    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("2nd Probe Z:", z2, " Discrepancy:", first_probe_z - z2);
+    //if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("2nd Probe Z:", z2, " Discrepancy:", first_probe_z - z2);
 
     // Return a weighted average of the fast and slow probes
-    const float measured_z = (z2 * 3.0 + first_probe_z * 2.0) * 0.2;
+    //const float measured_z = (z2 * 3.0 + first_probe_z * 2.0) * 0.2;
+    const float measured_z = current_position.z;     //2---------1---------使用最后一次调平（回零）数值
 
   #else
 
@@ -787,7 +794,7 @@ float Probe::probe_at_point(const_float_t rx, const_float_t ry, const ProbePtRai
   if (!isnan(measured_z)) {
     const bool big_raise = raise_after == PROBE_PT_BIG_RAISE;
     if (big_raise || raise_after == PROBE_PT_RAISE)
-      do_blocking_move_to_z(current_position.z + (big_raise ? 25 : Z_CLEARANCE_BETWEEN_PROBES), z_probe_fast_mm_s);
+      do_blocking_move_to_z(current_position.z + (big_raise ? 25 : Z_CLEARANCE_BETWEEN_PROBES), z_probe_fast_mm_s*7);//2----------1---------第二次Z抬升速度//如果是大的上升，则移动到当前的Z值加上25或者Z_CLEARANCE_BETWEEN_PROBES
     else if (raise_after == PROBE_PT_STOW || raise_after == PROBE_PT_LAST_STOW)
       if (stow()) measured_z = NAN;   // Error on stow?
 

@@ -115,6 +115,27 @@
 
 #endif // QUICK_HOME
 
+bool Z_MAX_IO_state;
+bool G28_Z_start_flg;
+//void GcodeSuite::Z_before_G28()
+void Z_before_G28()
+{
+    const int axis_home_dir = home_dir(_AXIS(Z));	
+    const float move_length = 1.5f * max_length(_AXIS(Z)) * axis_home_dir;
+
+	G28_Z_start_flg = true;
+  //SET_SOFT_ENDSTOP_LOOSE(true);
+  //if(READ(PC14)==LOW)
+  // if(READ(PB9)==LOW)
+  //   do_blocking_move_to_z(10,homing_feedrate(_AXIS(Z))*4);
+    
+	do_blocking_move_to_z(move_length,homing_feedrate(_AXIS(Z))*10);//2--------回光电限位倍速
+	planner.synchronize(); 
+  //SET_SOFT_ENDSTOP_LOOSE(false);
+	//quickstop_stepper();
+	//G28_Z_start_flg = false;
+}
+
 #if ENABLED(Z_SAFE_HOMING)
 
   inline void home_z_safely() {
@@ -151,7 +172,11 @@
       TERN_(SENSORLESS_HOMING, safe_delay(500)); // Short delay needed to settle
 
       do_blocking_move_to_xy(destination);
+
+      Z_before_G28();
+
       homeaxis(Z_AXIS);
+      
     }
     else {
       LCD_MESSAGE(MSG_ZPROBE_OUT);
@@ -208,7 +233,19 @@
  *  Y   Home to the Y endstop
  *  Z   Home to the Z endstop
  */
+
+#if ENABLED(POWER_LOSS_RECOVERY)
+
+  //2---------屏蔽快速G28起始抬升速度
+extern bool block_G28_Zup;
+#endif
+
+
+
+
 void GcodeSuite::G28() {
+
+  
   DEBUG_SECTION(log_G28, "G28", DEBUGGING(LEVELING));
   if (DEBUGGING(LEVELING)) log_machine_info();
 
@@ -247,6 +284,31 @@ void GcodeSuite::G28() {
   // Disable the leveling matrix before homing
   #if CAN_SET_LEVELING_AFTER_G28
     const bool leveling_restore_state = parser.boolval('L', TERN1(RESTORE_LEVELING_AFTER_G28, planner.leveling_active));
+    
+    //1---------快速G28起始抬升速度
+    #if ENABLED(POWER_LOSS_RECOVERY)
+      if(!block_G28_Zup)
+      {
+        gcode.process_subcommands_now(PSTR("M84 Z"));//避免光电传感器一直被遮挡的bug
+        gcode.process_subcommands_now(PSTR("G91"));
+        gcode.process_subcommands_now(PSTR("G1 Z-0.2 F100"));//2--------避免新传感器固件bug,如果回原点前喷嘴压着平台，导致Z原点数值偏低，整体调平值偏高。
+        gcode.process_subcommands_now(PSTR("G1 Z2 F600"));//先压一下再快速抬升，使传感器重置
+        gcode.process_subcommands_now(PSTR("G1 Z8 F300"));//先压一下再快速抬升，使传感器重置
+        gcode.process_subcommands_now(PSTR("G90"));
+      }
+      else
+      {
+        block_G28_Zup = false;
+      }
+    #else
+        gcode.process_subcommands_now(PSTR("M84 Z"));
+        gcode.process_subcommands_now(PSTR("G91"));
+        gcode.process_subcommands_now(PSTR("G1 Z-0.2 F100"));//2--------避免新传感器固件bug,如果回原点前喷嘴压着平台，导致Z原点数值偏低，整体调平值偏高。
+        gcode.process_subcommands_now(PSTR("G1 Z2 F600"));//先压一下再快速抬升，使传感器重置
+        gcode.process_subcommands_now(PSTR("G1 Z8 F300"));//先压一下再快速抬升，使传感器重置
+        gcode.process_subcommands_now(PSTR("G90"));
+    #endif
+  
   #endif
 
   // Cancel any prior G29 session
@@ -435,7 +497,17 @@ void GcodeSuite::G28() {
           stepper.set_all_z_lock(false);
           stepper.set_separate_multi_axis(false);
         #endif
-
+        
+    #if ZNP_TEST 
+		if(READ(PB9)==LOW)  do_z_clearance(10);
+    #else
+    if(READ(PC14)==LOW) { 
+      do_z_clearance(10, true); 
+    }
+    #endif
+    
+    planner.synchronize();
+	
         TERN(Z_SAFE_HOMING, home_z_safely(), homeaxis(Z_AXIS));
         probe.move_z_after_homing();
       }
@@ -556,4 +628,9 @@ void GcodeSuite::G28() {
       L64xxManager.set_param((L64XX_axis_t)cv, L6470_ABS_POS, stepper.position(L64XX_axis_xref[cv]));
     }
   #endif
+
+  #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
+    set_bed_leveling_enabled(true);
+  #endif
+  
 }

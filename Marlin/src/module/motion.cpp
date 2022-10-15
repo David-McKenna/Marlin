@@ -486,7 +486,7 @@ void do_blocking_move_to(LINEAR_AXIS_ARGS(const float), const_feedRate_t fr_mm_s
   const feedRate_t xy_feedrate = fr_mm_s ?: feedRate_t(XY_PROBE_FEEDRATE_MM_S);
 
   #if HAS_Z_AXIS
-    const feedRate_t z_feedrate = fr_mm_s ?: homing_feedrate(Z_AXIS);
+    const feedRate_t z_feedrate = fr_mm_s ?: homing_feedrate(Z_AXIS);     //1--------调平速度
   #endif
 
   #if IS_KINEMATIC
@@ -552,12 +552,12 @@ void do_blocking_move_to(LINEAR_AXIS_ARGS(const float), const_feedRate_t fr_mm_s
       // If Z needs to raise, do it before moving XY
       if (current_position.z < z) {
         current_position.z = z;
-        line_to_current_position(z_feedrate);
+        line_to_current_position(z_feedrate);//1------test
       }
     #endif
 
     current_position.set(x, y);
-    line_to_current_position(xy_feedrate);
+    line_to_current_position(xy_feedrate);//1---------test
 
     #if HAS_Z_AXIS
       // If Z needs to lower, do it after moving XY
@@ -672,7 +672,7 @@ void do_blocking_move_to_x(const_float_t rx, const_feedRate_t fr_mm_s/*=0.0*/) {
 static float saved_feedrate_mm_s;
 static int16_t saved_feedrate_percentage;
 void remember_feedrate_and_scaling() {
-  saved_feedrate_mm_s = feedrate_mm_s;
+  saved_feedrate_mm_s = feedrate_mm_s;           //1---------
   saved_feedrate_percentage = feedrate_percentage;
 }
 void remember_feedrate_scaling_off() {
@@ -1315,7 +1315,11 @@ void prepare_line_to_destination() {
   }
 
   bool homing_needed_error(linear_axis_bits_t axis_bits/*=linear_bits*/) {
-    if ((axis_bits = axes_should_home(axis_bits))) {
+
+    axis_bits = axes_should_home(axis_bits);
+    
+    // if ((axis_bits = axes_should_home(axis_bits))) {
+    if(axis_bits) {
       PGM_P home_first = GET_TEXT(MSG_HOME_FIRST);
       char msg[strlen_P(home_first)+1];
       sprintf_P(msg, home_first,
@@ -1516,7 +1520,11 @@ void prepare_line_to_destination() {
   void do_homing_move(const AxisEnum axis, const float distance, const feedRate_t fr_mm_s=0.0, const bool final_approach=true) {
     DEBUG_SECTION(log_move, "do_homing_move", DEBUGGING(LEVELING));
 
-    const feedRate_t home_fr_mm_s = fr_mm_s ?: homing_feedrate(axis);
+    feedRate_t home_fr_mm_s = fr_mm_s ?: homing_feedrate(axis);
+    //Z HOMING SLOW
+    if(axis == Z_AXIS){
+      //home_fr_mm_s = 1.5;/*0.3*///2-------注释-禁用该速度，启用配置文件中的回原点速度为第一次下降速度
+    }
 
     if (DEBUGGING(LEVELING)) {
       DEBUG_ECHOPGM("...(", AS_CHAR(AXIS_CHAR(axis)), ", ", distance, ", ");
@@ -1799,6 +1807,7 @@ void prepare_line_to_destination() {
     //
     // Fast move towards endstop until triggered
     //
+    //999---------可能是G28中快速抬升速度
     const float move_length = 1.5f * max_length(TERN(DELTA, Z_AXIS, axis)) * axis_home_dir;
     if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("Home Fast: ", move_length, "mm");
     do_homing_move(axis, move_length, 0.0, !use_probe_bump);
