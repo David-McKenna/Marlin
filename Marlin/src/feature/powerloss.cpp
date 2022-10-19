@@ -534,10 +534,17 @@ void PrintJobRecovery::resume() {
     gcode.process_subcommands_now(F("G1F3000E" STRINGIFY(POWER_LOSS_RETRACT_LEN)));
   #endif
 
+
+//999--------断电恢复的动作
   // Additional purge on resume if configured
   #if POWER_LOSS_PURGE_LEN
-    sprintf_P(cmd, PSTR("G1F3000E%d"), (POWER_LOSS_PURGE_LEN) + (POWER_LOSS_RETRACT_LEN));
+    //sprintf_P(cmd, PSTR("G1F3000E%d"), (POWER_LOSS_PURGE_LEN) + (POWER_LOSS_RETRACT_LEN));
+
+    sprintf_P(cmd, PSTR("G1F600E%d"), (POWER_LOSS_PURGE_LEN) + (POWER_LOSS_RETRACT_LEN));
     gcode.process_subcommands_now(cmd);
+    gcode.process_subcommands_now(PSTR("M83"));
+    gcode.process_subcommands_now(PSTR("G1 E-10 F600"));
+    gcode.process_subcommands_now(PSTR("G90"));
   #endif
 
   #if ENABLED(NOZZLE_CLEAN_FEATURE)
@@ -558,6 +565,11 @@ void PrintJobRecovery::resume() {
   // Restore the feedrate
   sprintf_P(cmd, PSTR("G1F%d"), info.feedrate);
   gcode.process_subcommands_now(cmd);
+
+  gcode.process_subcommands_now(PSTR("M83"));
+  gcode.process_subcommands_now(PSTR("G1 E10 F600"));
+  gcode.process_subcommands_now(PSTR("G1 F2000"));
+  gcode.process_subcommands_now(PSTR("G90"));
 
   // Restore E position with G92.9
   sprintf_P(cmd, PSTR("G92.9E%s"), dtostrf(info.current_position.e, 1, 3, str_1));

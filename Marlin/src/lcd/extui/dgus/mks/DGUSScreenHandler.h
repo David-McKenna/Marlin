@@ -21,7 +21,14 @@
  */
 #pragma once
 
+#include "mks_hardware.h"
+
 #include "../DGUSScreenHandlerBase.h"
+#include "../DGUSDisplay.h"
+#include "../DGUSVPVariable.h"
+#include "../DGUSDisplayDef.h"
+
+#include "../../../../inc/MarlinConfig.h"
 
 enum DGUSLCD_Screens : uint8_t;
 
@@ -36,9 +43,27 @@ public:
   #endif
 
   static void ScreenBackChange(DGUS_VP_Variable &var, void *val_ptr);
+  static void GetManualE0_T_step(DGUS_VP_Variable &var, void *val_ptr);
+  static void GetManualHotB_T_step(DGUS_VP_Variable &var, void *val_ptr);
 
   static void EEPROM_CTRL(DGUS_VP_Variable &var, void *val_ptr);
   static void LanguageChange(DGUS_VP_Variable &var, void *val_ptr);
+  static void GetFlowRateStep(DGUS_VP_Variable &var, void *val_ptr);
+  static void Perph_page_MKS(DGUS_VP_Variable &var, void *val_ptr);
+  static void fan_page_MKS(DGUS_VP_Variable &var, void *val_ptr);
+  static void print_set_page_MKS(DGUS_VP_Variable &var, void *val_ptr);
+  static void PREPARE_PAGE_SET(DGUS_VP_Variable &var, void *val_ptr);
+  static void SETTING_PAGE_JUMP(DGUS_VP_Variable &var, void *val_ptr);
+  static void AUTO_LEVEL_POPUP(DGUS_VP_Variable &var, void *val_ptr);
+  static void SET_FAN_ON_OFF_HANDLER(DGUS_VP_Variable &var, void *val_ptr);
+  static void PRINT_SETTING_HANDLER(DGUS_VP_Variable &var, void *val_ptr);
+  static void SETTING_TEMPER_PAGE_JUMP(DGUS_VP_Variable &var, void *val_ptr);
+  static void GetFeedratePercentageStep(DGUS_VP_Variable &var, void *val_ptr);
+  static void HandleFeedratePercentageAdjust(DGUS_VP_Variable &var, void *val_ptr);
+  static void SET_FILAMENT_DET_HANDLER(DGUS_VP_Variable &var, void *val_ptr); 
+  static void GetFanPercentageStep(DGUS_VP_Variable &var, void *val_ptr);
+  static void HandleFanPercentageAdjust(DGUS_VP_Variable &var, void *val_ptr);
+
   static void GetOffsetValue(DGUS_VP_Variable &var, void *val_ptr);
   static void Level_Ctrl(DGUS_VP_Variable &var, void *val_ptr);
   static void MeshLevel(DGUS_VP_Variable &var, void *val_ptr);
@@ -58,10 +83,13 @@ public:
   static void GetTurnOffCtrl(DGUS_VP_Variable &var, void *val_ptr);
   static void LanguagePInit();
   static void DGUS_Runout_Idle();
+  static void DGUS_Runout_reset(void);
+  static void DGUS_Runout_init(void);
   static void DGUS_RunoutInit();
   static void DGUS_ExtrudeLoadInit();
   static void LCD_BLK_Adjust(DGUS_VP_Variable &var, void *val_ptr);
   static void SD_FileBack(DGUS_VP_Variable &var, void *val_ptr);
+  static void Filament_Runout_Comfirm(DGUS_VP_Variable&, void*);
 
   static void HandleStepPerMMChanged(DGUS_VP_Variable &var, void *val_ptr);
   static void HandleStepPerMMExtruderChanged(DGUS_VP_Variable &var, void *val_ptr);
@@ -71,9 +99,18 @@ public:
   static void HandleMaxAccChange(DGUS_VP_Variable &var, void *val_ptr);
   static void HandleExtruderAccChange(DGUS_VP_Variable &var, void *val_ptr);
   static void HandleChangeLevelPoint(DGUS_VP_Variable &var, void *val_ptr);
+  static void HandleSetFan_MKS(DGUS_VP_Variable &var, void *val_ptr);
+  static void HandleSetPLAorABS_MKS(DGUS_VP_Variable &var, void *val_ptr);
   static void HandleTravelAccChange(DGUS_VP_Variable &var, void *val_ptr);
   static void HandleFeedRateMinChange(DGUS_VP_Variable &var, void *val_ptr);
   static void HandleMin_T_F(DGUS_VP_Variable &var, void *val_ptr);
+
+  static void HandleManualE0_T(DGUS_VP_Variable &var, void *val_ptr);
+  static void HandleManualHotB_T(DGUS_VP_Variable &var, void *val_ptr);
+  static void GetDefault_Temp_MKS(DGUS_VP_Variable &var, void *val_ptr); 
+  static void HandleSetPLAorABS_SAVE(DGUS_VP_Variable &var, void *val_ptr); 
+  static void GetLanguage_MKS(DGUS_VP_Variable &var, void *val_ptr); 
+  static void HandleLanguage_SAVE(DGUS_VP_Variable &var, void *val_ptr); 
 
   #if HAS_PID_HEATING
     static void FilamentLoadUnload(DGUS_VP_Variable &var, void *val_ptr, const int filamentDir);
@@ -81,9 +118,19 @@ public:
     static void FilamentUnLoad(DGUS_VP_Variable &var, void *val_ptr);
     static void GetManualFilament(DGUS_VP_Variable &var, void *val_ptr);
     static void GetManualFilamentSpeed(DGUS_VP_Variable &var, void *val_ptr);
+    static void HandleProbeOffsetZChanged(DGUS_VP_Variable &var, void *val_ptr);
   #endif
+  static void MKS_PrintFilamentLoad(DGUS_VP_Variable &var, void *val_ptr);
+  static void MKS_PrintFilamentUnLoad(DGUS_VP_Variable &var, void *val_ptr);
 
+  static void MKS_PrintFilamentLoad_Confirm(DGUS_VP_Variable &var, void *val_ptr);
+  static void MKS_PrintFilamentUnLoad_Confirm(DGUS_VP_Variable &var, void *val_ptr);
+  static void MKS_FilamentCancelHeating(DGUS_VP_Variable &var, void *val_ptr);
+  static void MKS_Extrude_load_popup(DGUS_VP_Variable &var, void *val_ptr);
+  static void MKS_Extrude_unload_popup(DGUS_VP_Variable &var, void *val_ptr);
+  
   #if ENABLED(SDSUPPORT)
+    static void DGUSLCD_SD_PrintAgain(DGUS_VP_Variable &var, void *val_ptr);
     // Marlin informed us about SD print completion.
     static void SDPrintingFinished();
   #else
@@ -101,6 +148,9 @@ public:
 
   static bool loop();
 };
+extern DGUSScreenHandlerMKS ScreenHandler;
+
+void dgus_sd_read_err_disp(uint16_t on_off);
 
 enum MKS_Choose : uint8_t { MKS_Language_Choose, MKS_Language_NoChoose };
 enum MKS_Language : uint8_t { MKS_SimpleChinese, MKS_English };

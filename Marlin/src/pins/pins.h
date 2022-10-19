@@ -633,6 +633,8 @@
   #include "stm32f4/pins_RUMBA32_BTT.h"         // STM32F4                                env:rumba32
 #elif MB(BLACK_STM32F407VE)
   #include "stm32f4/pins_BLACK_STM32F407VE.h"   // STM32F4                                env:STM32F407VE_black
+#elif MB(MKS_E3D_V2)                            
+  #include "stm32f4/pins_MKS_E3_V2.h"           // STM32F4                                env:MKS_E3_V2
 #elif MB(BTT_SKR_PRO_V1_1)
   #include "stm32f4/pins_BTT_SKR_PRO_V1_1.h"    // STM32F4                                env:BIGTREE_SKR_PRO env:BIGTREE_SKR_PRO_usb_flash_drive
 #elif MB(BTT_SKR_PRO_V1_2)

@@ -75,7 +75,7 @@ extern xyz_pos_t cartes;
  */
 constexpr xyz_feedrate_t homing_feedrate_mm_m = HOMING_FEEDRATE_MM_M;
 FORCE_INLINE feedRate_t homing_feedrate(const AxisEnum a) {
-  float v = TERN0(HAS_Z_AXIS, homing_feedrate_mm_m.z);
+  float v = TERN0(HAS_Z_AXIS, homing_feedrate_mm_m.z);    //尝试X3
   #if DISABLED(DELTA)
     NUM_AXIS_CODE(
            if (a == X_AXIS) v = homing_feedrate_mm_m.x,

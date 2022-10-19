@@ -702,12 +702,22 @@ void __O2 Endstops::report_states() {
 #endif
 #define _ENDSTOP(AXIS, MINMAX) __ENDSTOP(AXIS, MINMAX)
 
+extern bool Z_MAX_IO_state;
+extern bool G28_Z_start_flg;
+
 /**
  * Called from interrupt context by the Endstop ISR or Stepper ISR!
  * Read endstops to get their current states, register hits for all
  * axes moving in the direction of their endstops, and abort moves.
  */
 void Endstops::update() {
+ /*
+  if((READ(PB9)==LOW)&&(G28_Z_start_flg == true))
+  {
+    G28_Z_start_flg = false;
+    Z_MAX_IO_state = true;
+  }
+  */
 
   #if !ENDSTOP_NOISE_THRESHOLD      // If not debouncing...
     if (!abort_enabled()) return;   // ...and not enabled, exit.
