@@ -2580,7 +2580,7 @@ void MarlinSettings::postprocess() {
       // MKS UI controller
       //
       #if ENABLED(DGUS_LCD_UI_MKS)
-        _FIELD_TEST(mks_language_index);
+        _FIELD_TEST(mks_park_pos);
         //EEPROM_READ(mks_language_index);
         //EEPROM_READ(mks_corner_offsets);
         EEPROM_READ(mks_park_pos);

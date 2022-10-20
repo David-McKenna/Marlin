@@ -153,7 +153,7 @@ extern DGUSScreenHandlerMKS ScreenHandler;
 void dgus_sd_read_err_disp(uint16_t on_off);
 
 enum MKS_Choose : uint8_t { MKS_Language_Choose, MKS_Language_NoChoose };
-enum MKS_Language : uint8_t { MKS_SimpleChinese, MKS_English };
+enum MKS_Language : uint16_t { MKS_SimpleChinese, MKS_English };
 
 extern MKS_Language mks_language_index;
 extern bool DGUSAutoTurnOff;
